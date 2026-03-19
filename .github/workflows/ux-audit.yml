@@ -1,0 +1,46 @@
+
+name: UX Audit
+
+on:
+  workflow_dispatch:
+    inputs:
+      images:
+        description: 'Images to audit (comma-separated, e.g. homepage-v1.png, homepage-v2.png)'
+        required: true
+        type: string
+      context:
+        description: 'Project or context (optional, e.g. Homepage redesign - round 2)'
+        required: false
+        type: string
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic
+
+      - name: Run UX Audit
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          IMAGES: ${{ inputs.images }}
+          CONTEXT: ${{ inputs.context }}
+        run: python .github/scripts/ux_audit.py
+
+      - name: Commit audit reports
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ux-audit/reports/
+          git commit -m "audit: add UX audit reports $(date +'%Y-%m-%d')" || echo "Nothing to commit"
+          git push
+          
